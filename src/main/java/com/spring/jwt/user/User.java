@@ -5,16 +5,14 @@ import lombok.*;
 
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-@AllArgsConstructor
 @Entity
-@Builder
 @Table(name = "USER_MANAGEMENT")
 public class User {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "ID")
-    private String id;
+    private int id;
     @Column(name = "USER_ID")
     private String userId;
     @Column(name = "PASSWORD")
@@ -24,13 +22,11 @@ public class User {
     @Column(name = "AUTH")
     private String auth;
 
-
-    public User toDTO(UserDTO userDTO) {
-        return User.builder()
-                .userId(userDTO.getUserId())
-                .password(userDTO.getPassword())
-                .name(userDTO.getName())
-                .auth(userDTO.getAuth())
-                .build();
+    @Builder
+    public User(String userId, String password ,String name, String auth){
+        this.userId = userId;
+        this.password = password;
+        this.name = name;
+        this.auth = auth;
     }
 }

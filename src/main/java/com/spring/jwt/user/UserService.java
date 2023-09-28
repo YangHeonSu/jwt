@@ -20,9 +20,8 @@ public class UserService {
     public void save(UserDTO userDTO) {
 
         userDTO.bCryptPasswordEncoder(bCryptPasswordEncoder.encode(userDTO.getPassword()));
-        User user = new User();
-        user.toDTO(userDTO);
 
+        User user = userDTO.toEntity();
         userRepository.save(user);
     }
 }
