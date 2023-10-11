@@ -66,11 +66,11 @@ public class JwtTokenProvider {
      * @param authentication Authentication
      * @return TokenDTO grantType, accessToken, refreshToken
      */
-    public TokenDTO generateToken(Authentication authentication) {
+    public TokenDTO generateToken(String userId, String auth) {
         // 인증 객체에서 권한 정보 가져오기
-        String authorities = authentication.getAuthorities().stream()
+   /*     String authorities = authentication.getAuthorities().stream()
                 .map(GrantedAuthority::getAuthority)
-                .collect(Collectors.joining(","));
+                .collect(Collectors.joining(","));*/
 
         long nowDate = (new Date()).getTime();
         Date accessTokenExpiresIn = new Date(nowDate + accessTokenValidTime);
@@ -78,9 +78,9 @@ public class JwtTokenProvider {
 
         // accessToken 생성
         String accessToken = Jwts.builder()
-                .setSubject(authentication.getName()) // 정보 저장
+                .setSubject(userId) // 정보 저장
                 .setExpiration(accessTokenExpiresIn)// 토큰 유효시간 설정
-                .claim("auth", authorities)
+                .claim("auth", auth)
                 .signWith(getSecretKey(secretKey), SignatureAlgorithm.HS256) // 암호화 알고리즘, secreat 값
                 .compact();
 

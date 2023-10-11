@@ -15,9 +15,9 @@ public class CustomUserDetail implements UserDetails {
         this.password = user.getPassword();
     }
 
-    private String auth;
-    private String userId;
-    private String password;
+    private final String auth;
+    private final String userId;
+    private final String password;
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
