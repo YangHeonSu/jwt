@@ -11,14 +11,24 @@ import lombok.NoArgsConstructor;
 @Builder
 public class UserDTO {
 
-    private String id;
+    private int id;
     private String userId;
     private String password;
     private String name;
     private String auth;
 
+    // DTO 가 Entity 에 의존하는 것은 문제가 되지 않는다.
+    public UserDTO(User user) {
+        this.userId = user.getUserId();
+        this.auth = user.getAuth();
+        this.name = user.getName();
+        this.password = user.getPassword();
+        this.id = user.getId();
+    }
+
     /**
      * 비밀번호 암호화 설정
+     *
      * @param bCryptPasswordEncoder String password
      */
     public void bCryptPasswordEncoder(String bCryptPasswordEncoder) {
