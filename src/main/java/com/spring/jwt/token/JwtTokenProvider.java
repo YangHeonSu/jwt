@@ -10,6 +10,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.stereotype.Component;
@@ -19,6 +20,7 @@ import java.nio.charset.StandardCharsets;
 import java.security.Key;
 import java.util.Date;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * Jwt Token 생성, 인증, 권한부여, 유효성검사 , pk 추출 등의 기능을 제공하는 클래스
@@ -41,6 +43,7 @@ public class JwtTokenProvider {
 
     /**
      * 토큰 생성1
+     *
      * @param userId String userId
      * @param auth   List<String> auth
      * @return String token
@@ -60,12 +63,14 @@ public class JwtTokenProvider {
 
     /**
      * AccessToken과 RefreshToken을 동시에 생성하여 TokenDTO 반환
+     *
      * @param authentication Authentication
      * @return TokenDTO grantType, accessToken, refreshToken
      */
     public TokenDTO generateToken(String userId, String auth) {
+
         // 인증 객체에서 권한 정보 가져오기
-   /*     String authorities = authentication.getAuthorities().stream()
+/*        String authorities = authentication.getAuthorities().stream()
                 .map(GrantedAuthority::getAuthority)
                 .collect(Collectors.joining(","));*/
 
@@ -97,6 +102,7 @@ public class JwtTokenProvider {
 
     /**
      * 인증정보 조회
+     *
      * @param accessToken String token
      * @return Authentication UsernamePasswordAuthenticationToken
      */
@@ -107,6 +113,7 @@ public class JwtTokenProvider {
 
     /**
      * 토큰을 통한 회원정보 조회
+     *
      * @param accessToken String token
      * @return String userId
      */
@@ -121,6 +128,7 @@ public class JwtTokenProvider {
 
     /**
      * 토큰 유효성, 만료일자 검증
+     *
      * @param jwtToken String jwtToken
      * @return boolean true, false
      */
@@ -138,6 +146,7 @@ public class JwtTokenProvider {
 
     /**
      * Request의 Header에서 token 값 가져오기
+     *
      * @param request HttpServletRequest
      * @return String token
      */
