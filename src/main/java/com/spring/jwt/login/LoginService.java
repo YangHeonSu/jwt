@@ -31,7 +31,7 @@ public class LoginService {
     @Transactional
     public TokenDTO login(LoginDTO loginDTO) {
 
-        Optional<User> user = Optional.ofNullable(userRepository.findByUserId(loginDTO.getUserId())
+/*        Optional<User> user = Optional.ofNullable(userRepository.findByUserId(loginDTO.getUserId())
                 .orElseThrow(() -> new UsernameNotFoundException("UserId Not Exists")));
 
         if (!bCryptPasswordEncoder.matches(loginDTO.getPassword(), user.get().getPassword())) {
@@ -39,9 +39,9 @@ public class LoginService {
             throw new BadCredentialsException("Password is wrong");
         }
 
-        return jwtTokenProvider.generateToken(user.get().getUserId(), user.get().getAuth());
+        return jwtTokenProvider.generateToken(user.get().getUserId(), user.get().getAuth());*/
 
-/*        // Login ID/PW 를 기반으로 Authentication 객체 생성
+        // Login ID/PW 를 기반으로 Authentication 객체 생성
         // 이 시점에서 Authentication은 인증 여부를 확인하는 authenticated 값이 false
         UsernamePasswordAuthenticationToken authenticationToken
                 = new UsernamePasswordAuthenticationToken(loginDTO.getUserId(), loginDTO.getPassword());
@@ -50,6 +50,6 @@ public class LoginService {
         Authentication authentication = authenticationManagerBuilder.getObject().authenticate(authenticationToken);
         log.info("authentication : {}", authentication);
         // 인증 정보를 기반으로 jwt 토큰 생성
-        return jwtTokenProvider.generateToken(authentication);*/
+        return jwtTokenProvider.generateToken(authentication);
     }
 }
