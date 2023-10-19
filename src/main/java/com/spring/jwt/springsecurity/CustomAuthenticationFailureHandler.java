@@ -28,5 +28,7 @@ public class CustomAuthenticationFailureHandler implements AuthenticationFailure
             log.info("LoginFail Reason : {}", "Password is Wrong");
             log.info("LoginFail Reason : {}", exception.getMessage());
         }
+
+        request.getRequestDispatcher("/api/login/fail").forward(request,response);
     }
 }

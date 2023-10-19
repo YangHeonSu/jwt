@@ -61,18 +61,6 @@ public class CustomAuthenticationFilter extends UsernamePasswordAuthenticationFi
         }
 
         return new UsernamePasswordAuthenticationToken(customUserDetail, null, customUserDetail.getAuthorities());
-
-/*        ObjectMapper objectMapper = new ObjectMapper();
-        LoginDTO loginDTO = new LoginDTO();
-        try {
-             loginDTO = objectMapper.readValue(request.getInputStream(), LoginDTO.class);
-        }catch (Exception e) {
-            e.printStackTrace();
-        }
-        UsernamePasswordAuthenticationToken authenticationToken =
-                new UsernamePasswordAuthenticationToken(loginDTO.getUserId(), loginDTO.getPassword());
-
-        return authenticationManager.authenticate(authenticationToken);*/
     }
 
     @Override
