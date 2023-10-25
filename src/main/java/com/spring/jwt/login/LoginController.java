@@ -30,9 +30,10 @@ public class LoginController {
      * @return TokenDTO
      */
     @PostMapping("/api/login")
-    public ResponseEntity<TokenDTO> login(@RequestBody LoginDTO loginDTO) {
-        TokenDTO tokenDTO = loginService.login(loginDTO);
-        return ResponseEntity.ok(tokenDTO);
+    public ResponseEntity<LoginResponseDTO> login(@RequestBody LoginDTO loginDTO) {
+        LoginResponseDTO loginResponseDTO = loginService.loginResponse(loginDTO);
+
+        return ResponseEntity.ok(loginResponseDTO);
     }
 
     /**

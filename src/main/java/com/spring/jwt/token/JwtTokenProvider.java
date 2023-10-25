@@ -48,24 +48,36 @@ public class JwtTokenProvider {
      * @param auth   List<String> auth
      * @return String token
      */
-    public String createToken(String userId, List<String> auth) {
-        Claims claims = Jwts.claims().setSubject(userId); // JWT Payload에 저장되는 정보단위
-        claims.put("auth", auth); // 정보는 key-value 형식으로 저장
-        Date date = new Date();
+    public TokenDTO createToken(String userId, String auth) {
+        long nowDate = (new Date()).getTime();
+        Date accessTokenExpiresIn = new Date(nowDate + accessTokenValidTime);
+        Date refreshTokenExpiresIn = new Date(nowDate + refreshTokenValidTime);
 
-        return Jwts.builder()
-                .setClaims(claims) // 정보 저장
-                .setIssuedAt(date) // 토큰 발생 시간
-                .setExpiration(new Date(date.getTime() + accessTokenValidTime))// 토큰 유효시간 설정
+        // accessToken 생성
+        String accessToken = Jwts.builder()
+                .setSubject(userId) // 정보 저장
+                .setExpiration(accessTokenExpiresIn)// 토큰 유효시간 설정
+                .claim("auth", auth)
                 .signWith(getSecretKey(secretKey), SignatureAlgorithm.HS256) // 암호화 알고리즘, secreat 값
                 .compact();
+
+        // refreshToken 생성
+        String refreshToken = Jwts.builder()
+                .setExpiration(refreshTokenExpiresIn)// 토큰 유효시간 설정
+                .signWith(getSecretKey(secretKey), SignatureAlgorithm.HS256) // 암호화 알고리즘, secreat 값
+                .compact();
+
+        return TokenDTO.builder()
+                .grantType("Bearer")
+                .accessToken("Bearer " + accessToken)
+                .refreshToken(refreshToken)
+                .build();
     }
 
     /**
      * AccessToken과 RefreshToken을 동시에 생성하여 TokenDTO 반환
      *
-     * @param userId String userId 사용자 ID
-     * @param auth String auth 사용자 권한 (ROLE_ADMIN, ROLE_USER)
+     * @param authentication authentication
      * @return TokenDTO grantType, accessToken, refreshToken
      */
     public TokenDTO generateToken(Authentication authentication) {
