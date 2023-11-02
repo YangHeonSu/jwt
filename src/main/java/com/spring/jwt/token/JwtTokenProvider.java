@@ -1,11 +1,13 @@
 package com.spring.jwt.token;
 
+import com.spring.jwt.springsecurity.CustomUserDetail;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jws;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -145,16 +147,102 @@ public class JwtTokenProvider {
      * @param jwtToken String jwtToken
      * @return boolean true, false
      */
-    public boolean validationToken(String jwtToken) {
+    public boolean validationToken(String jwtToken, HttpServletResponse response) {
         try {
             Jws<Claims> claimsJws = Jwts.parserBuilder()
                     .setSigningKey(getSecretKey(secretKey))
                     .build()
                     .parseClaimsJws(jwtToken);
-            return !claimsJws.getBody().getExpiration().before(new Date());
+
+            if (isAccessTokenExpired(jwtToken)) { // accessToken이 만료된 경우
+                // refreshToken을 통해 accessToken 재발급 로직
+                String refreshToken = getRefreshToken(jwtToken);
+                TokenDTO accessToken = newAccessToken(refreshToken); // 새로 발급된 AccessToken
+
+                response.setHeader("Authorization", "Bearer " + accessToken.getAccessToken());
+                return true;
+            } else {
+                return false;
+            }
+
+//            return !claimsJws.getBody().getExpiration().before(new Date());
         } catch (Exception exception) {
             return false;
         }
+    }
+    
+    
+    public TokenDTO newAccessToken(String refreshToken) {
+        String userId = getUsername(refreshToken);
+        CustomUserDetail userDetails = (CustomUserDetail) userDetailsService.loadUserByUsername(userId);
+        Authentication authentication = new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
+
+        // 인증 객체에서 권한 정보 가져오기
+        String authorities = authentication.getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority)
+                .collect(Collectors.joining(","));
+
+        long nowDate = (new Date()).getTime();
+        Date accessTokenExpiresIn = new Date(nowDate + accessTokenValidTime);
+
+        // accessToken 생성
+        String accessToken = Jwts.builder()
+                .setSubject(authentication.getName()) // 정보 저장
+                .setExpiration(accessTokenExpiresIn)// 토큰 유효시간 설정
+                .claim("auth", authorities)
+                .signWith(getSecretKey(secretKey), SignatureAlgorithm.HS256) // 암호화 알고리즘, secreat 값
+                .compact();
+        return TokenDTO.builder()
+                .grantType("Bearer")
+                .accessToken(accessToken)
+                .build();
+    }
+
+    /**
+     * 토큰에서 사용자 아이디 조회
+     * @param refreshToken String token
+     * @return String userId
+     */
+    private String getUsername(String refreshToken) {
+        Claims claims = extractClaims(refreshToken);
+        return claims.getSubject();
+    }
+
+    /**
+     * Claims정보에서 refreshToken 정보 가져오기
+     * 
+     * @param jwtToken String jwtToken
+     * @return String refreshToken
+     */
+    private String getRefreshToken(String jwtToken) {
+        Claims claims = extractClaims(jwtToken);
+        return claims.get("refreshToken", String.class);
+    }
+
+    /**
+     * AccessToken 만료 여부 확인
+     * @param jwtToken String jwtToken
+     * @return boolean true false (true -> 만료, false-> 유효)
+     */
+    private boolean isAccessTokenExpired(String jwtToken) {
+        Claims claims = extractClaims(jwtToken);
+        Date expiration = claims.getExpiration(); // accessToken 만료일자 추출
+        return expiration != null && expiration.before(new Date()); // 만료 일자가 null이 아니고 현재 시간이전일 경우 true
+    }
+
+
+    /**
+     * 토큰에서 Claims 정보 추출
+     *
+     * @param jwtToken String jwtToken
+     * @return Claims
+     */
+    private Claims extractClaims(String jwtToken) {
+        return Jwts.parserBuilder()
+                .setSigningKey(getSecretKey(secretKey))
+                .build()
+                .parseClaimsJws(jwtToken)
+                .getBody();
     }
 
     /**

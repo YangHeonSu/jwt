@@ -28,7 +28,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         String token = jwtTokenProvider.resolveToken(request);
 
         // Token 유효성 검사
-        if (token != null && jwtTokenProvider.validationToken(token)) {
+        if (token != null && jwtTokenProvider.validationToken(token, response)) {
             //Token이 유효할 경우 토큰에서 Authentication 객체를 가지고 와서 SecurityContext에 저장
             Authentication authentication = jwtTokenProvider.getAuthentication(token);
             SecurityContextHolder.getContext().setAuthentication(authentication);
