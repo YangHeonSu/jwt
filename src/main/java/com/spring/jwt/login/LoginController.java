@@ -4,16 +4,21 @@ import com.spring.jwt.token.JwtTokenProvider;
 import com.spring.jwt.token.TokenDTO;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.validation.BindingResult;
+import org.springframework.validation.FieldError;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -30,8 +35,22 @@ public class LoginController {
      * @return TokenDTO
      */
     @PostMapping("/api/login")
-    public ResponseEntity<LoginResponseDTO> login(@RequestBody LoginDTO loginDTO) {
-        LoginResponseDTO loginResponseDTO = loginService.loginResponse(loginDTO);
+    public ResponseEntity<LoginResponseDTO> login(@RequestBody @Valid LoginRequestDTO loginDTO
+            , BindingResult bindingResult
+            , HttpServletResponse httpServletResponse) {
+
+        Map<String, Object> loginValid = new HashMap<>();
+        LoginResponseDTO loginResponseDTO = new LoginResponseDTO();
+
+        if (bindingResult.hasErrors()) {
+            List<FieldError> errors = bindingResult.getFieldErrors();
+            for (FieldError fieldError : errors) {
+                loginValid.put(fieldError.getField(), fieldError.getDefaultMessage());
+            }
+            loginResponseDTO.setMessage(loginValid);
+        } else {
+            loginResponseDTO = loginService.login(loginDTO, httpServletResponse);
+        }
 
         return ResponseEntity.ok(loginResponseDTO);
     }

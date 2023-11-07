@@ -3,8 +3,8 @@ spring:
     driver-class-name: org.mariadb.jdbc.Driver
     url: jdbc:mariadb://127.0.0.1:3306/jwt?characterEncoding=UTF-8&serverTimezone=UTC
     username: root
-    password: didwkd12#$
-
+    password: mysql12#$
+    #노트북에서는 didwkd12#$
   jpa:
     hibernate:
       ddl-auto: create
