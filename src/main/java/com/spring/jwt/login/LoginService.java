@@ -44,7 +44,6 @@ public class LoginService {
     public LoginResponseDTO login(LoginRequestDTO loginDTO
             , HttpServletResponse httpServletResponse) {
 
-        Optional<User> user = userRepository.findByUserId(loginDTO.getUserId());
         LoginResponseDTO loginResponseDTO = new LoginResponseDTO();
         Map<String, Object> loginRequestValidMessage = loginRequestValidation(loginDTO);
 
@@ -54,7 +53,7 @@ public class LoginService {
             Authentication authentication = new UsernamePasswordAuthenticationToken(customUserDetail, null, customUserDetail.getAuthorities());
             SecurityContextHolder.getContext().setAuthentication(authentication);
 
-            TokenDTO token = jwtTokenProvider.createToken(user.get().getUserId(), user.get().getAuth());
+            TokenDTO token = jwtTokenProvider.generateToken(authentication);
             // 4. 인증 객체를 설정한다.
 
             loginResponseDTO.setTokenDTO(token);

@@ -3,7 +3,7 @@ spring:
     driver-class-name: org.mariadb.jdbc.Driver
     url: jdbc:mariadb://127.0.0.1:3306/jwt?characterEncoding=UTF-8&serverTimezone=UTC
     username: root
-    password: mysql12#$
+    password: didwkd12#$
     #노트북에서는 didwkd12#$
   jpa:
     hibernate:
@@ -15,6 +15,8 @@ spring:
 
 jwt:
   secret: VlwEyVBsYt9V7zq57TejMnVUyzblYcfPQye08f7MGVA9XkHa
+  access-token-time : 300 # 5분
+  refresh-token-time : 1800 # 30분
 
 logging:
   level:
