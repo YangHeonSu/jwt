@@ -1,14 +1,12 @@
 package com.spring.jwt.token;
 
 import com.spring.jwt.springsecurity.CustomUserDetail;
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.Jws;
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
+import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -26,6 +24,7 @@ import java.util.stream.Collectors;
 /**
  * Jwt Token 생성, 인증, 권한부여, 유효성검사 , pk 추출 등의 기능을 제공하는 클래스
  */
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class JwtTokenProvider {
@@ -77,10 +76,13 @@ public class JwtTokenProvider {
      * @return String accessToken
      */
     public String setAccessToken(String userId, String authorities, Date accessTokenExpiresIn) {
+        Claims claims = Jwts.claims().setSubject(userId);
+        claims.put("auth", authorities);
+
         return Jwts.builder()
-                .setSubject(userId) // 정보 저장
                 .setExpiration(accessTokenExpiresIn)// 토큰 유효시간 설정
-                .claim("auth", authorities)
+                .setClaims(claims) // 발행 유저 설정
+                .setExpiration(new Date())  // 발행 시간
                 .signWith(getSecretKey(secretKey), SignatureAlgorithm.HS256) // 암호화 알고리즘, secreat 값
                 .compact();
     }
@@ -155,25 +157,15 @@ public class JwtTokenProvider {
      * @param jwtToken String jwtToken
      * @return boolean true, false
      */
-    public boolean validationToken(String jwtToken, HttpServletResponse response) {
+    public boolean validationToken(String jwtToken) {
         try {
             Jws<Claims> claimsJws = Jwts.parserBuilder()
                     .setSigningKey(getSecretKey(secretKey))
                     .build()
                     .parseClaimsJws(jwtToken);
-
-            if (isAccessTokenExpired(jwtToken)) { // accessToken이 만료된 경우
-                // refreshToken을 통해 accessToken 재발급 로직
-                String refreshToken = getRefreshToken(jwtToken);
-                TokenDTO accessToken = newAccessToken(refreshToken); // 새로 발급된 AccessToken
-
-                response.setHeader("Authorization", "Bearer " + accessToken.getAccessToken());
-                return true;
-            } else {
-                return false;
-            }
-
-        } catch (Exception exception) {
+            return !claimsJws.getBody().getExpiration().before(new Date());
+        } catch (ExpiredJwtException expiredJwtException) {
+            log.info("ExpiredJwtException : {}", expiredJwtException.getMessage());
             return false;
         }
     }

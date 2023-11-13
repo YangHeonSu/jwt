@@ -25,15 +25,27 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             , FilterChain filterChain) throws ServletException, IOException {
 
         // Header Token 가져오기
-        String token = jwtTokenProvider.resolveToken(request);
+        String accessToken = jwtTokenProvider.resolveToken(request);
 
-        // Token 유효성 검사
-        if (token != null && jwtTokenProvider.validationToken(token, response)) {
-            //Token이 유효할 경우 토큰에서 Authentication 객체를 가지고 와서 SecurityContext에 저장
-            Authentication authentication = jwtTokenProvider.getAuthentication(token);
-            SecurityContextHolder.getContext().setAuthentication(authentication);
+        if (accessToken != null) {
+            // accessToken이 유효한 경우
+            if (jwtTokenProvider.validationToken(accessToken)) {
+                this.setAuthentication(accessToken);
+            } else if (!jwtTokenProvider.validationToken(accessToken))  { // accessToken이 유효하지 않지만 refreshToken은 유효한 경우
+
+            }
         }
 
         filterChain.doFilter(request, response);
+    }
+
+    /**
+     *
+     * @param accessToken String accessToken
+     */
+    public void setAuthentication(String accessToken) {
+        //accessToken에서 Authentication 객체를 가지고 와서 SecurityContext에 저장
+        Authentication authentication = jwtTokenProvider.getAuthentication(accessToken);
+        SecurityContextHolder.getContext().setAuthentication(authentication);
     }
 }
