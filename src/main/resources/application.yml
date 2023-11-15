@@ -15,8 +15,6 @@ spring:
 
 jwt:
   secret: VlwEyVBsYt9V7zq57TejMnVUyzblYcfPQye08f7MGVA9XkHa
-  access-token-time : 300 # 5분
-  refresh-token-time : 1800 # 30분
 
 logging:
   level:

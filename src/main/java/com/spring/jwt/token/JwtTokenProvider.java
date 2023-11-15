@@ -1,6 +1,5 @@
 package com.spring.jwt.token;
 
-import com.spring.jwt.springsecurity.CustomUserDetail;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
 import jakarta.servlet.http.HttpServletRequest;
@@ -29,16 +28,12 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class JwtTokenProvider {
 
-    //private final long accessTokenValidTime = 30 * 60 * 1000L; // AccessToken 유효시간 30분
-    //private final long refreshTokenValidTime = 60 * 60 * 100L; // RefreshToken 유효시간 30분
     private final UserDetailsService userDetailsService;
 
     @Value("${jwt.secret}")
     private String secretKey;
-    @Value(("${jwt.access-token-time}"))
-    private Long accessTokenValidTime;
-    @Value(("${jwt.refresh-token-time}"))
-    private Long refreshTokenValidTime;
+    private final long accessTokenValidTime = 60 * 1000L;
+    private final long refreshTokenValidTime = 30 * 60 * 1000L;
 
     private Key getSecretKey(String secretKey) {
         byte[] KeyBytes = secretKey.getBytes(StandardCharsets.UTF_8);
@@ -76,13 +71,14 @@ public class JwtTokenProvider {
      * @return String accessToken
      */
     public String setAccessToken(String userId, String authorities, Date accessTokenExpiresIn) {
+
         Claims claims = Jwts.claims().setSubject(userId);
         claims.put("auth", authorities);
 
         return Jwts.builder()
-                .setExpiration(accessTokenExpiresIn)// 토큰 유효시간 설정
+                .setSubject(userId)
                 .setClaims(claims) // 발행 유저 설정
-                .setExpiration(new Date())  // 발행 시간
+                .setExpiration(accessTokenExpiresIn)// 토큰 유효시간 설정
                 .signWith(getSecretKey(secretKey), SignatureAlgorithm.HS256) // 암호화 알고리즘, secreat 값
                 .compact();
     }
@@ -170,38 +166,6 @@ public class JwtTokenProvider {
         }
     }
 
-
-    /**
-     * RefreshToken을 통해 accessToken 재발급
-     *
-     * param refreshToken
-     * @return
-     */
-    public TokenDTO newAccessToken(String refreshToken) {
-
-        String userId = getUsername(refreshToken);
-        CustomUserDetail userDetails = (CustomUserDetail) userDetailsService.loadUserByUsername(userId);
-        Authentication authentication = new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
-
-        // 인증 객체에서 권한 정보 가져오기
-        String authorities = getAuthorities(authentication);
-
-        long nowDate = (new Date()).getTime();
-        Date accessTokenExpiresIn = new Date(nowDate + accessTokenValidTime);
-
-        // accessToken 생성
-        String accessToken = Jwts.builder()
-                .setSubject(authentication.getName()) // 정보 저장
-                .setExpiration(accessTokenExpiresIn)// 토큰 유효시간 설정
-                .claim("auth", authorities)
-                .signWith(getSecretKey(secretKey), SignatureAlgorithm.HS256) // 암호화 알고리즘, secreat 값
-                .compact();
-        return TokenDTO.builder()
-                .grantType("Bearer")
-                .accessToken(accessToken)
-                .build();
-    }
-
     /**
      * 토큰에서 사용자 아이디 조회
      *
@@ -212,30 +176,6 @@ public class JwtTokenProvider {
         Claims claims = extractClaims(refreshToken);
         return claims.getSubject();
     }
-
-    /**
-     * Claims 정보에서 refreshToken 정보 가져오기
-     *
-     * @param jwtToken String jwtToken
-     * @return String refreshToken
-     */
-    private String getRefreshToken(String jwtToken) {
-        Claims claims = extractClaims(jwtToken);
-        return claims.get("refreshToken", String.class);
-    }
-
-    /**
-     * AccessToken 만료 여부 확인
-     *
-     * @param jwtToken String jwtToken
-     * @return boolean true false (true -> 만료, false-> 유효)
-     */
-    private boolean isAccessTokenExpired(String jwtToken) {
-        Claims claims = extractClaims(jwtToken);
-        Date expiration = claims.getExpiration(); // accessToken 만료일자 추출
-        return expiration != null && expiration.before(new Date()); // 만료 일자가 null이 아니고 현재 시간이전일 경우 true
-    }
-
 
     /**
      * 토큰에서 Claims 정보 추출
@@ -257,11 +197,45 @@ public class JwtTokenProvider {
      * @param request HttpServletRequest
      * @return String token
      */
-    public String resolveToken(HttpServletRequest request) {
-        String bearerToken = request.getHeader("Authorization");
-        if (StringUtils.hasText(bearerToken) && bearerToken.startsWith("Bearer ")) {
-            return bearerToken.substring(7);
+    public String resolveAccessToken(HttpServletRequest request) {
+
+        String accessToken;
+        String accessHeader = request.getHeader("Authorization");
+        
+        if (StringUtils.hasText(accessHeader) && accessHeader.startsWith("Bearer ")) {
+            accessToken = accessHeader.substring(7);
+            return accessToken;
         }
+
         return null;
+    }
+
+    /**
+     * Request Header에서 refreshToken 값 가져오기
+     * 
+     * @param request HttpServletRequest
+     * @return String refrehsToken
+     */
+    public String resolveRefreshToken(HttpServletRequest  request) {
+
+        String refreshToken;
+        String refreshHeader = request.getHeader("RefreshToken");
+
+        if (StringUtils.hasText(refreshHeader) && refreshHeader.startsWith("Bearer ")) {
+            refreshToken = refreshHeader.substring(7);
+            return refreshToken;
+        }
+        
+        return null;
+    }
+
+    /**
+     * 재발급된 accessToken Header 설정
+     *
+     * @param response HttpServletResponse
+     * @param newAccessToken String newAccessToken
+     */
+    public void setHeaderAccessToken(HttpServletResponse response, String newAccessToken) {
+        response.setHeader("Authorization", "Bearer " + newAccessToken);
     }
 }

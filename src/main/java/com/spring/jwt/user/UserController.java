@@ -38,7 +38,7 @@ public class UserController {
      *
      * @return Map<String, Object> findAll Users
      */
-    @GetMapping("/api/users")
+    @GetMapping("/api/user")
     public Map<String, Object> findAll() {
         Map<String, Object> list = new HashMap<>();
         List<UserDTO> user = userService.findAll();
