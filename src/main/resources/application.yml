@@ -3,7 +3,8 @@ spring:
     driver-class-name: org.mariadb.jdbc.Driver
     url: jdbc:mariadb://127.0.0.1:3306/jwt?characterEncoding=UTF-8&serverTimezone=UTC
     username: root
-    password: didwkd12#$
+    password: mysql12#$
+    #pc에서는 mysql12#$
     #노트북에서는 didwkd12#$
   jpa:
     hibernate:
@@ -12,6 +13,10 @@ spring:
       hibernate:
         format_sql: true #To beautify or pretty print the SQL
         show_sql: true #show sql
+  data:
+    redis:
+      port: 6379
+      host: localhost
 
 jwt:
   secret: VlwEyVBsYt9V7zq57TejMnVUyzblYcfPQye08f7MGVA9XkHa

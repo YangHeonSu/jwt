@@ -17,6 +17,7 @@ import org.springframework.util.StringUtils;
 
 import java.nio.charset.StandardCharsets;
 import java.security.Key;
+import java.time.Duration;
 import java.util.Date;
 import java.util.stream.Collectors;
 
@@ -34,6 +35,7 @@ public class JwtTokenProvider {
     private String secretKey;
     private final long accessTokenValidTime = 60 * 1000L;
     private final long refreshTokenValidTime = 30 * 60 * 1000L;
+    private final RedisService redisService;
 
     private Key getSecretKey(String secretKey) {
         byte[] KeyBytes = secretKey.getBytes(StandardCharsets.UTF_8);
@@ -50,10 +52,11 @@ public class JwtTokenProvider {
 
         String authorities = getAuthorities(authentication);
         Date accessTokenExpiresIn = setTokenExpiresIn(accessTokenValidTime);
-        Date refreshTokenExpiresIn = setTokenExpiresIn( refreshTokenValidTime);
+        Date refreshTokenExpiresIn = setTokenExpiresIn(refreshTokenValidTime);
         String accessToken = setAccessToken(authentication.getName(), authorities, accessTokenExpiresIn);
-        String refreshToken = setRefreshToken(refreshTokenExpiresIn);
+        String refreshToken = setRefreshToken(authentication.getName(), authorities,refreshTokenExpiresIn);
 
+        redisService.setValues(authentication.getName(), refreshToken);
 
         return TokenDTO.builder()
                 .grantType("Bearer")
@@ -89,8 +92,13 @@ public class JwtTokenProvider {
      * @param refreshTokenExpiresIn Date refreshTokenTime
      * @return String refreshToken
      */
-    public String setRefreshToken(Date refreshTokenExpiresIn) {
+    public String setRefreshToken(String userId, String authorities, Date refreshTokenExpiresIn) {
+        Claims claims = Jwts.claims().setSubject(userId);
+        claims.put("auth", authorities);
+
         return Jwts.builder()
+                .setSubject(userId)
+                .setClaims(claims) // 발행 유저 설정
                 .setExpiration(refreshTokenExpiresIn)// 토큰 유효시간 설정
                 .signWith(getSecretKey(secretKey), SignatureAlgorithm.HS256) // 암호화 알고리즘, secreat 값
                 .compact();

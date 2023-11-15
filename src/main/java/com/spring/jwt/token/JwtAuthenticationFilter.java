@@ -20,6 +20,7 @@ import java.io.IOException;
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtTokenProvider jwtTokenProvider;
+    private final RedisService redisService;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request
@@ -44,6 +45,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 // refreshToen으로 Authentication 조회
                 Authentication authentication = jwtTokenProvider.getAuthentication(refreshToken);
                 TokenDTO tokenDTO = jwtTokenProvider.generateToken(authentication);
+
+                String values = redisService.getValues(refreshToken);
+                String values2= redisService.getValues(authentication.getName());
+
+                log.info("test 1 : {}" , values);
+                log.info("test 2 : {}" , values2);
 
                 log.info("new accessToken : {}", tokenDTO.getAccessToken());
 
