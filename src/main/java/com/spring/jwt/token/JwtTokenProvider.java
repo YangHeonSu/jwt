@@ -17,7 +17,6 @@ import org.springframework.util.StringUtils;
 
 import java.nio.charset.StandardCharsets;
 import java.security.Key;
-import java.time.Duration;
 import java.util.Date;
 import java.util.stream.Collectors;
 
@@ -33,8 +32,10 @@ public class JwtTokenProvider {
 
     @Value("${jwt.secret}")
     private String secretKey;
-    private final long accessTokenValidTime = 60 * 1000L;
-    private final long refreshTokenValidTime = 30 * 60 * 1000L;
+    @Value("${jwt.accessTokenValidTime}")
+    private Long accessTokenValidTime ;
+    @Value("${jwt.refreshTokenValidTime}")
+    private Long refreshTokenValidTime;
     private final RedisService redisService;
 
     private Key getSecretKey(String secretKey) {

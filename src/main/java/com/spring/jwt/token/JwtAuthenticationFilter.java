@@ -36,9 +36,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         if (accessToken != null) {
             // accessToken이 유효한 경우
             if (jwtTokenProvider.validationToken(accessToken)) {
+
                 this.setAuthentication(accessToken);
                 filterChain.doFilter(request, response);
+
             } else if (!jwtTokenProvider.validationToken(accessToken) && refreshToken == null) { // accessToken이 만료되어 refreshToken을 통해 accessToken을 재발급 요청을 위한 response 설정
+
+                getAccessTokenExpiredResult(response);
 
             } else if (!jwtTokenProvider.validationToken(accessToken) && jwtTokenProvider.validationToken(refreshToken)) {
 
@@ -57,6 +61,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 jwtTokenProvider.setHeaderAccessToken(response, tokenDTO.getAccessToken());
                 this.setAuthentication(tokenDTO.getAccessToken());
                 filterChain.doFilter(request, response);
+
             } else {
                 // 로그아웃 처리
                 log.info("accessToken, refreshToken 모두 만료");
@@ -75,5 +80,20 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         //accessToken에서 Authentication 객체를 가지고 와서 SecurityContext에 저장
         Authentication authentication = jwtTokenProvider.getAuthentication(accessToken);
         SecurityContextHolder.getContext().setAuthentication(authentication);
+    }
+
+    /**
+     * accessToken이 만료되었을 때 response 설정
+     * 
+     * @param response HttpServletResponse status, contentType
+     */
+    public void getAccessTokenExpiredResult(HttpServletResponse response) {
+        try {
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            response.setContentType("application/json;charset=UTF-8");
+            response.getWriter().write("{\"message\" : \"401\"}");
+        } catch (IOException ioException) {
+            log.info("IOException : {}" , ioException.getMessage());
+        }
     }
 }
