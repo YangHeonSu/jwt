@@ -9,6 +9,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
@@ -33,38 +34,34 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         log.info("accessToken : {}", accessToken);
         log.info("refreshToken : {}", refreshToken);
 
-        if (accessToken != null) {
-            // accessToken이 유효한 경우
-            if (jwtTokenProvider.validationToken(accessToken)) {
+        if (accessToken != null) { // accessToken이 존재하는 경우
 
-                this.setAuthentication(accessToken);
-                filterChain.doFilter(request, response);
+            if (validBlackToken(accessToken)) { // 로그아웃된 accessToken이 아닌 경우
 
-            } else if (!jwtTokenProvider.validationToken(accessToken) && refreshToken == null) { // accessToken이 만료되어 refreshToken을 통해 accessToken을 재발급 요청을 위한 response 설정
+                if (jwtTokenProvider.validationToken(accessToken)) { // accessToken이 유효한 경우
+                    this.setAuthentication(accessToken);
+                    filterChain.doFilter(request, response);
 
-                getAccessTokenExpiredResult(response);
+                } else if (!jwtTokenProvider.validationToken(accessToken) && refreshToken == null) { // accessToken이 만료되어 refreshToken을 통해 accessToken을 재발급 요청을 위한 response 설정
+                    getAccessTokenExpiredResult(response);
 
-            } else if (!jwtTokenProvider.validationToken(accessToken) && jwtTokenProvider.validationToken(refreshToken)) {
+                } else if (!jwtTokenProvider.validationToken(accessToken) && jwtTokenProvider.validationToken(refreshToken)) {
 
-                // refreshToen으로 Authentication 조회
-                Authentication authentication = jwtTokenProvider.getAuthentication(refreshToken);
-                TokenDTO tokenDTO = jwtTokenProvider.generateToken(authentication);
+                    // refreshToen으로 Authentication 조회
+                    Authentication authentication = jwtTokenProvider.getAuthentication(refreshToken);
+                    TokenDTO tokenDTO = jwtTokenProvider.generateToken(authentication);
+                    log.info("new accessToken : {}", tokenDTO.getAccessToken());
 
-                String values = redisService.getValues(refreshToken);
-                String values2= redisService.getValues(authentication.getName());
+                    jwtTokenProvider.setHeaderAccessToken(response, tokenDTO.getAccessToken());
+                    this.setAuthentication(tokenDTO.getAccessToken());
+                    filterChain.doFilter(request, response);
 
-                log.info("test 1 : {}" , values);
-                log.info("test 2 : {}" , values2);
-
-                log.info("new accessToken : {}", tokenDTO.getAccessToken());
-
-                jwtTokenProvider.setHeaderAccessToken(response, tokenDTO.getAccessToken());
-                this.setAuthentication(tokenDTO.getAccessToken());
-                filterChain.doFilter(request, response);
-
+                } else {
+                    // 로그아웃 처리
+                    log.info("accessToken, refreshToken 모두 만료");
+                }
             } else {
-                // 로그아웃 처리
-                log.info("accessToken, refreshToken 모두 만료");
+                log.info("Logout token");
             }
         } else { // accessToken이 null일 경우
             filterChain.doFilter(request, response);
@@ -95,5 +92,16 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         } catch (IOException ioException) {
             log.info("IOException : {}" , ioException.getMessage());
         }
+    }
+
+    public boolean validBlackToken(String accessToken) {
+
+        boolean isBlackToken = true;
+        //Redis에 있는 엑세스 토큰인 경우 로그아웃 처리된 엑세스 토큰임.
+        String blackToken = redisService.getValues(accessToken);
+        if(blackToken != null) {
+            isBlackToken = false;
+        }
+        return isBlackToken;
     }
 }

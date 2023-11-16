@@ -1,6 +1,7 @@
 package com.spring.jwt.login;
 
 import com.spring.jwt.token.JwtTokenProvider;
+import com.spring.jwt.token.RedisService;
 import com.spring.jwt.token.TokenDTO;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -27,6 +28,7 @@ public class LoginController {
 
     private final LoginService loginService;
     private final JwtTokenProvider jwtTokenProvider;
+    private final RedisService redisService;
 
     /**
      * 로그인 요청
@@ -55,8 +57,23 @@ public class LoginController {
         return ResponseEntity.ok(loginResponseDTO);
     }
 
+    @PostMapping("/api/logout")
+    public ResponseEntity<Map<String, Object>> logout(HttpServletRequest request) {
+
+        Map<String, Object> logoutResult = new HashMap<>();
+        String requestAccessToken = jwtTokenProvider.resolveAccessToken(request);
+        String user = jwtTokenProvider.findUser(requestAccessToken); // accessToken으로 사용자 찾기
+        Long expiration = jwtTokenProvider.getExpiration(requestAccessToken);
+
+        redisService.setValues(requestAccessToken, "logout", expiration); // accessToken을 redis에 저장
+        redisService.deleteValues(user);
+
+        logoutResult.put("logoutResult", 200);
+        return ResponseEntity.ok(logoutResult);
+    }
+
     /**
-     * 로그인 성공 시 토큰 정보 반환
+     * formData 로그인 성공 시 토큰 정보 반환
      *
      * @param request HttpServletRequest request
      * @param response HttpServletResponse response

@@ -59,6 +59,9 @@ public class JwtTokenProvider {
 
         redisService.setValues(authentication.getName(), refreshToken);
 
+        log.info("refreshToken : {}", refreshToken);
+        log.info("redis store refreshToken : {}", redisService.getValues(authentication.getName()));
+
         return TokenDTO.builder()
                 .grantType("Bearer")
                 .accessToken("Bearer " + accessToken)
@@ -176,14 +179,21 @@ public class JwtTokenProvider {
     }
 
     /**
-     * 토큰에서 사용자 아이디 조회
+     * JWT 토큰의 만료시간
      *
-     * @param refreshToken String token
-     * @return String userId
+     * @param accessToken String accessToken
+     * @return Long token Expiration
      */
-    private String getUsername(String refreshToken) {
-        Claims claims = extractClaims(refreshToken);
-        return claims.getSubject();
+    public Long getExpiration(String accessToken){
+        Date expiration = Jwts.parserBuilder()
+                .setSigningKey(getSecretKey(secretKey))
+                .build()
+                .parseClaimsJws(accessToken)
+                .getBody()
+                .getExpiration();
+        long now = new Date().getTime();
+
+        return expiration.getTime() - now;
     }
 
     /**
