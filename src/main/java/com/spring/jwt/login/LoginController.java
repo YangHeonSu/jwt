@@ -1,7 +1,6 @@
 package com.spring.jwt.login;
 
 import com.spring.jwt.token.JwtTokenProvider;
-import com.spring.jwt.token.RedisService;
 import com.spring.jwt.token.TokenDTO;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -17,7 +16,6 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -28,7 +26,6 @@ public class LoginController {
 
     private final LoginService loginService;
     private final JwtTokenProvider jwtTokenProvider;
-    private final RedisService redisService;
 
     /**
      * 로그인 요청
@@ -57,18 +54,15 @@ public class LoginController {
         return ResponseEntity.ok(loginResponseDTO);
     }
 
+    /**
+     * 로그아웃 요청
+     *
+     * @param request HttpServletRequest
+     * @return ResponseEntity<Map<String, Object>> logoutResult
+     */
     @PostMapping("/api/logout")
     public ResponseEntity<Map<String, Object>> logout(HttpServletRequest request) {
-
-        Map<String, Object> logoutResult = new HashMap<>();
-        String requestAccessToken = jwtTokenProvider.resolveAccessToken(request);
-        String user = jwtTokenProvider.findUser(requestAccessToken); // accessToken으로 사용자 찾기
-        Long expiration = jwtTokenProvider.getExpiration(requestAccessToken);
-
-        redisService.setValues(requestAccessToken, "logout", expiration); // accessToken을 redis에 저장
-        redisService.deleteValues(user);
-
-        logoutResult.put("logoutResult", 200);
+        Map<String, Object> logoutResult = loginService.logout(request);
         return ResponseEntity.ok(logoutResult);
     }
 

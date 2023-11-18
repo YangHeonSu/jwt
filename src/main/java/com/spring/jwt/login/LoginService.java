@@ -2,9 +2,10 @@ package com.spring.jwt.login;
 
 import com.spring.jwt.springsecurity.CustomUserDetail;
 import com.spring.jwt.token.JwtTokenProvider;
+import com.spring.jwt.token.RedisService;
 import com.spring.jwt.token.TokenDTO;
-import com.spring.jwt.user.User;
 import com.spring.jwt.user.UserRepository;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -20,7 +21,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -32,6 +32,7 @@ public class LoginService {
     private final JwtTokenProvider jwtTokenProvider;
     private final BCryptPasswordEncoder bCryptPasswordEncoder;
     private final UserRepository userRepository;
+    private final RedisService redisService;
     private final UserDetailsService userDetailsService;
 
     /**
@@ -69,6 +70,26 @@ public class LoginService {
         }
 
         return loginResponseDTO;
+    }
+
+    @Transactional
+    public  Map<String, Object> logout(HttpServletRequest request) {
+
+        /**
+         * 만료된 accessToken으로 로그아웃 요청 시
+         */
+
+        Map<String, Object> logoutResult = new HashMap<>();
+        String requestAccessToken = jwtTokenProvider.resolveAccessToken(request);
+        String user = jwtTokenProvider.findUser(requestAccessToken); // accessToken으로 사용자 찾기
+        Long expiration = jwtTokenProvider.getExpiration(requestAccessToken);
+
+        redisService.setValues(requestAccessToken, "logout", expiration); // accessToken을 redis에 저장
+        redisService.deleteValues(user);
+
+        logoutResult.put("logoutResult" , 200);
+
+        return logoutResult;
     }
 
     /**

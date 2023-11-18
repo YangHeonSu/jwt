@@ -9,7 +9,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
-import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
@@ -45,10 +44,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 } else if (!jwtTokenProvider.validationToken(accessToken) && refreshToken == null) { // accessToken이 만료되어 refreshToken을 통해 accessToken을 재발급 요청을 위한 response 설정
                     getAccessTokenExpiredResult(response);
 
-                } else if (!jwtTokenProvider.validationToken(accessToken) && jwtTokenProvider.validationToken(refreshToken)) {
+                } else if (!jwtTokenProvider.validationToken(accessToken) && jwtTokenProvider.validationToken(refreshToken)) { // acccessToken은 만료되었지만 refreshToken이 유효한 경우
 
-                    // refreshToen으로 Authentication 조회
-                    Authentication authentication = jwtTokenProvider.getAuthentication(refreshToken);
+                    Authentication authentication = jwtTokenProvider.getAuthentication(refreshToken); // refreshToen으로 Authentication 조회
                     TokenDTO tokenDTO = jwtTokenProvider.generateToken(authentication);
                     log.info("new accessToken : {}", tokenDTO.getAccessToken());
 
@@ -56,11 +54,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     this.setAuthentication(tokenDTO.getAccessToken());
                     filterChain.doFilter(request, response);
 
-                } else {
-                    // 로그아웃 처리
+                } else { // accessToken, refreshToken 모두 만료되었을 경우
+                    getTokenExpiredResult(response); // 로그아웃 처리
                     log.info("accessToken, refreshToken 모두 만료");
                 }
-            } else {
+            } else { // 로그아웃된 accessToken으로 요청 보냈을 경우
+                getTokenExpiredResult(response);
+                SecurityContextHolder.clearContext();
                 log.info("Logout token");
             }
         } else { // accessToken이 null일 경우
@@ -94,6 +94,28 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
     }
 
+    /**
+     * accessToken, refreshToken 모두 만료되었을 때 or 로그아웃된 accessToken으로 api 요청 시 response 설정
+     * response 201 설정 -> 로그아웃 처리 -> 로그인 페이지 이동
+     *
+     * @param response HttpServletResponse status, contentType
+     */
+    public void getTokenExpiredResult(HttpServletResponse response) {
+        try {
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            response.setContentType("application/json;charset=UTF-8");
+            response.getWriter().write("{\"message\" : \"201\"}");
+        } catch (IOException ioException) {
+            log.info("IOException : {}" , ioException.getMessage());
+        }
+    }
+
+    /**
+     * api 요청 시 로그아웃된 accessToken인지 검증
+     * 
+     * @param accessToken String accessToken
+     * @return Boolean true, false
+     */
     public boolean validBlackToken(String accessToken) {
 
         boolean isBlackToken = true;

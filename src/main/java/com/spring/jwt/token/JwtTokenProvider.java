@@ -59,9 +59,6 @@ public class JwtTokenProvider {
 
         redisService.setValues(authentication.getName(), refreshToken);
 
-        log.info("refreshToken : {}", refreshToken);
-        log.info("redis store refreshToken : {}", redisService.getValues(authentication.getName()));
-
         return TokenDTO.builder()
                 .grantType("Bearer")
                 .accessToken(accessToken)
@@ -194,20 +191,6 @@ public class JwtTokenProvider {
         long now = new Date().getTime();
 
         return expiration.getTime() - now;
-    }
-
-    /**
-     * 토큰에서 Claims 정보 추출
-     *
-     * @param jwtToken String jwtToken
-     * @return Claims
-     */
-    private Claims extractClaims(String jwtToken) {
-        return Jwts.parserBuilder()
-                .setSigningKey(getSecretKey(secretKey))
-                .build()
-                .parseClaimsJws(jwtToken)
-                .getBody();
     }
 
     /**
