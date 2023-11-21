@@ -48,7 +48,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
                         if (redisRefreshToken.equals(refreshToken)) { // 요청 들어온 refreshToken 정보와 redis에 저장된 refreshToken이 일치하는 경우
                             // Authentication으로 accessToken 재발급
-                            TokenDTO reAccessToken = jwtTokenProvider.generateToken(authentication);
+                            TokenDTO reAccessToken = jwtTokenProvider.createAccessToken(authentication);
                             jwtTokenProvider.setHeaderAccessToken(response, reAccessToken.getAccessToken());
 
                             this.setAuthentication(reAccessToken.getAccessToken());

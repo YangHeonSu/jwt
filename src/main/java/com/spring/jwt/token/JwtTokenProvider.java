@@ -60,7 +60,6 @@ public class JwtTokenProvider {
         log.info("accesToken date : {}" , accessTokenExpiresIn);
         log.info("refreshToken date : {}" , refreshTokenExpiresIn);
 
-
         redisService.setValues(authentication.getName(), refreshToken);
 
         return TokenDTO.builder()
@@ -70,6 +69,25 @@ public class JwtTokenProvider {
                 .build();
     }
 
+    /**
+     * accessToken 생성
+     *
+     * @param authentication Authentication
+     * @return TokenDTO grantType, accessToken
+     */
+    public TokenDTO createAccessToken(Authentication authentication) {
+
+        String authorities = getAuthorities(authentication);
+        Date accessTokenExpiresIn = setTokenExpiresIn(accessTokenValidTime);
+        String accessToken = setAccessToken(authentication.getName(), authorities, accessTokenExpiresIn);
+
+        log.info("accesToken date : {}" , accessTokenExpiresIn);
+        return TokenDTO.builder()
+                .grantType("Bearer")
+                .accessToken(accessToken)
+                .build();
+    }
+    
     /**
      * AccessToken 설정
      *
