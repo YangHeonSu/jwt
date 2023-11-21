@@ -57,6 +57,10 @@ public class JwtTokenProvider {
         String accessToken = setAccessToken(authentication.getName(), authorities, accessTokenExpiresIn);
         String refreshToken = setRefreshToken(authentication.getName(), authorities,refreshTokenExpiresIn);
 
+        log.info("accesToken date : {}" , accessTokenExpiresIn);
+        log.info("refreshToken date : {}" , refreshTokenExpiresIn);
+
+
         redisService.setValues(authentication.getName(), refreshToken);
 
         return TokenDTO.builder()

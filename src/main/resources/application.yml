@@ -20,8 +20,8 @@ spring:
 
 jwt:
   secret: VlwEyVBsYt9V7zq57TejMnVUyzblYcfPQye08f7MGVA9XkHa
-  accessTokenValidTime: 30000 # 5분
-  refreshTokenValidTime : 360000 # 1시간
+  accessTokenValidTime: 180000 # 5분
+  refreshTokenValidTime : 300000 # 10분
 
 logging:
   level:

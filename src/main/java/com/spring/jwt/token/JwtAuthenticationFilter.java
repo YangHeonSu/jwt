@@ -30,47 +30,47 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         String accessToken = jwtTokenProvider.resolveAccessToken(request);
         String refreshToken = jwtTokenProvider.resolveRefreshToken(request);
 
-        log.info("accessToken : {}", accessToken);
-        log.info("refreshToken : {}", refreshToken);
-
-        if (accessToken != null) { // accessToken이 존재하는 경우
-
+        if (accessToken != null) {  // accessToken이 존재하는 경우
             if (validBlackToken(accessToken)) { // 로그아웃된 accessToken이 아닌 경우
-
+                log.info("로그아웃된 accessToken이 아님");
                 if (jwtTokenProvider.validationToken(accessToken)) { // accessToken이 유효한 경우
+                    log.info("access 유효");
                     this.setAuthentication(accessToken);
                     filterChain.doFilter(request, response);
 
-                } else if (!jwtTokenProvider.validationToken(accessToken) && refreshToken == null) { // accessToken이 만료되어 refreshToken을 통해 accessToken을 재발급 요청을 위한 response 설정
-                    getAccessTokenExpiredResult(response);
+                }  else if (!jwtTokenProvider.validationToken(accessToken)) { // accessToken이 만료되었을 때 refreshToken으로 accessToken을 재발급하기 위해 response 설정 하기 위함
+                    if (refreshToken == null) {
+                        log.info("access 만료");
+                        getAccessTokenExpiredResult(response);
+                    } else if (jwtTokenProvider.validationToken(refreshToken)){
+                        Authentication authentication = jwtTokenProvider.getAuthentication(refreshToken); // refreshToken으로 Authentication 정보 가져오기
+                        String redisRefreshToken = redisService.getValues(authentication.getName()); // Redis에 저장된 refreshToken 가져오기
 
-                } else if (!jwtTokenProvider.validationToken(accessToken) && jwtTokenProvider.validationToken(refreshToken)) { // acccessToken은 만료되었지만 refreshToken이 유효한 경우
+                        if (redisRefreshToken.equals(refreshToken)) { // 요청 들어온 refreshToken 정보와 redis에 저장된 refreshToken이 일치하는 경우
+                            // Authentication으로 accessToken 재발급
+                            TokenDTO reAccessToken = jwtTokenProvider.generateToken(authentication);
+                            jwtTokenProvider.setHeaderAccessToken(response, reAccessToken.getAccessToken());
 
-                    Authentication authentication = jwtTokenProvider.getAuthentication(refreshToken); // refreshToen으로 Authentication 조회
-                    String redisRefreshToken = redisService.getValues(authentication.getName());
+                            this.setAuthentication(reAccessToken.getAccessToken());
+                            filterChain.doFilter(request, response);
+                            log.info("요청 refreshToken과 redis에 저장된 refreshToken이 일치");
 
-                    if (redisRefreshToken.equals(refreshToken)) { // 요청들어온 refreshToken과 redis에 저장된 refreshToken이 일치하는 경우
-                        TokenDTO tokenDTO = jwtTokenProvider.generateToken(authentication);
-                        log.info("new accessToken : {}", tokenDTO.getAccessToken());
-
-                        jwtTokenProvider.setHeaderAccessToken(response, tokenDTO.getAccessToken());
-                        this.setAuthentication(tokenDTO.getAccessToken());
-                        filterChain.doFilter(request, response);
-                    } else { // 요청들어온 refreshToken과 redis에 저장된 refreshToken이 일치하지 않는 경우
-                        redisService.deleteValues(authentication.getName()); //
+                        } else { // 요청 들어온 refreshToken 정보와 redis에 저장된 refreshToken이 일치하지 않는 경우
+                            redisService.deleteValues(authentication.getName()); //
+                            getTokenExpiredResult(response);
+                            log.info("요청 refreshToken과 redis에 저장된 refreshToken이 일치하지 않음.");
+                        }
+                    } else { //accessToken, refreshToken 모두 만료된 경우
                         getTokenExpiredResult(response);
+                        log.info("accessToken, refreshToken 모두 만료");
                     }
-
-                } else { // accessToken, refreshToken 모두 만료되었을 경우
-                    getTokenExpiredResult(response); // 로그아웃 처리
-                    log.info("accessToken, refreshToken 모두 만료");
                 }
-            } else { // 로그아웃된 accessToken으로 요청 보냈을 경우
+            } else { // 로그아웃된 accessToken인 경우
                 getTokenExpiredResult(response);
                 SecurityContextHolder.clearContext();
-                log.info("Logout token");
+                log.info("Logout Token");
             }
-        } else { // accessToken이 null일 경우
+        } else { // acceeToken이 존재하지 않는 경우
             filterChain.doFilter(request, response);
         }
     }
@@ -109,7 +109,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
      */
     public void getTokenExpiredResult(HttpServletResponse response) {
         try {
-            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            response.setStatus(HttpServletResponse.SC_CREATED);
             response.setContentType("application/json;charset=UTF-8");
             response.getWriter().write("{\"message\" : \"201\"}");
         } catch (IOException ioException) {
