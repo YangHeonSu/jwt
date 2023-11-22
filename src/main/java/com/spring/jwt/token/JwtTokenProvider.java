@@ -17,6 +17,7 @@ import org.springframework.util.StringUtils;
 
 import java.nio.charset.StandardCharsets;
 import java.security.Key;
+import java.time.Duration;
 import java.util.Date;
 import java.util.stream.Collectors;
 
@@ -57,10 +58,7 @@ public class JwtTokenProvider {
         String accessToken = setAccessToken(authentication.getName(), authorities, accessTokenExpiresIn);
         String refreshToken = setRefreshToken(authentication.getName(), authorities,refreshTokenExpiresIn);
 
-        log.info("accesToken date : {}" , accessTokenExpiresIn);
-        log.info("refreshToken date : {}" , refreshTokenExpiresIn);
-
-        redisService.setValues(authentication.getName(), refreshToken);
+        redisService.setValues(authentication.getName(), refreshToken, Duration.ofMillis(refreshTokenValidTime));
 
         return TokenDTO.builder()
                 .grantType("Bearer")
@@ -81,7 +79,6 @@ public class JwtTokenProvider {
         Date accessTokenExpiresIn = setTokenExpiresIn(accessTokenValidTime);
         String accessToken = setAccessToken(authentication.getName(), authorities, accessTokenExpiresIn);
 
-        log.info("accesToken date : {}" , accessTokenExpiresIn);
         return TokenDTO.builder()
                 .grantType("Bearer")
                 .accessToken(accessToken)
